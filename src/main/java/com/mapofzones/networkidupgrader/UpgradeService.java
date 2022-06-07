@@ -2,12 +2,16 @@ package com.mapofzones.networkidupgrader;
 
 import com.google.common.base.Strings;
 import com.mapofzones.networkidupgrader.data.entities.BlocksLog;
+import com.mapofzones.networkidupgrader.data.entities.IbcClients;
 import com.mapofzones.networkidupgrader.data.entities.Zone;
 import com.mapofzones.networkidupgrader.properties.NetworkIdUpgraderProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.mapofzones.networkidupgrader.data.repository.*;
+import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -15,13 +19,15 @@ import java.util.Optional;
 public class UpgradeService {
     private final ZoneRepository zoneRepository;
     private final BlocksLogRepository blocksLogRepository;
+    private final IbcClientsRepository ibcClientsRepository;
     private final NetworkIdUpgraderProperties networkIdUpgraderProperties;
 
     public UpgradeService(ZoneRepository zoneRepository, NetworkIdUpgraderProperties networkIdUpgraderProperties,
-                          BlocksLogRepository blocksLogRepository) {
+                          BlocksLogRepository blocksLogRepository, IbcClientsRepository ibcClientsRepository) {
         this.zoneRepository = zoneRepository;
         this.networkIdUpgraderProperties = networkIdUpgraderProperties;
         this.blocksLogRepository = blocksLogRepository;
+        this.ibcClientsRepository = ibcClientsRepository;
     }
 
     public void doScript(String[] arguments) throws Exception {
@@ -29,6 +35,7 @@ public class UpgradeService {
         validateNetworkIds();
         upgradeZones();
         upgradeBlocksLog();
+        upgradeClientsConnectionsChannels();
         //todo
         log.info("-----Service Finished.");
 
@@ -98,5 +105,38 @@ public class UpgradeService {
                 log.info("2. End - New blocks_log successfully created.");
             }
         }
+    }
+
+    private void upgradeClientsConnectionsChannels() {
+        log.info("3. Start - Need to duplicate new ibc_clients & ibc_connections & ibc_channels based on the old one.");
+        upgradeClients();
+        upgradeConnections();
+        upgradeChannels();
+        log.info("3. End - New ibc_clients & ibc_connections & ibc_channels successfully created.");
+    }
+
+    private void upgradeClients() {
+        List<IbcClients> ibcClientsOld = ibcClientsRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
+        if (CollectionUtils.isEmpty(ibcClientsOld)) {
+            log.info("3.1. Start + End - Not found any old ibc_clients.");
+            return;
+        }
+        log.info("3.1. Start - Need to duplicate new ibc_clients based on the old one.");
+        List<IbcClients> ibcClientsNew = new ArrayList<>();
+        for (IbcClients clientOld : ibcClientsOld) {
+            IbcClients clientNew = new IbcClients(networkIdUpgraderProperties.getNetworkIdNew());
+            clientNew.fillDataFields(clientOld);
+            ibcClientsNew.add(clientNew);
+        }
+        ibcClientsRepository.saveAll(ibcClientsNew);
+        log.info("3.1. End - New ibc_clients successfully created.");
+    }
+
+    private void upgradeConnections() {
+        //todo
+    }
+
+    private void upgradeChannels() {
+        //todo
     }
 }
