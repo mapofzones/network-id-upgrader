@@ -3,6 +3,7 @@ package com.mapofzones.networkidupgrader.services;
 import com.google.common.base.Strings;
 import com.mapofzones.networkidupgrader.data.entities.BlocksLog;
 import com.mapofzones.networkidupgrader.data.entities.IbcClients;
+import com.mapofzones.networkidupgrader.data.entities.IbcConnections;
 import com.mapofzones.networkidupgrader.data.entities.Zone;
 import com.mapofzones.networkidupgrader.properties.NetworkIdUpgraderProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -20,14 +21,17 @@ public class UpgradeService {
     private final ZoneRepository zoneRepository;
     private final BlocksLogRepository blocksLogRepository;
     private final IbcClientsRepository ibcClientsRepository;
+    private final IbcConnectionsRepository ibcConnectionsRepository;
     private final NetworkIdUpgraderProperties networkIdUpgraderProperties;
 
     public UpgradeService(ZoneRepository zoneRepository, NetworkIdUpgraderProperties networkIdUpgraderProperties,
-                          BlocksLogRepository blocksLogRepository, IbcClientsRepository ibcClientsRepository) {
+                          BlocksLogRepository blocksLogRepository, IbcClientsRepository ibcClientsRepository,
+                          IbcConnectionsRepository ibcConnectionsRepository) {
         this.zoneRepository = zoneRepository;
         this.networkIdUpgraderProperties = networkIdUpgraderProperties;
         this.blocksLogRepository = blocksLogRepository;
         this.ibcClientsRepository = ibcClientsRepository;
+        this.ibcConnectionsRepository = ibcConnectionsRepository;
     }
 
     public void doScript(String[] arguments) throws Exception {
@@ -133,7 +137,20 @@ public class UpgradeService {
     }
 
     private void upgradeConnections() {
-        //todo
+        List<IbcConnections> ibcConnectionsOld = ibcConnectionsRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
+        if (CollectionUtils.isEmpty(ibcConnectionsOld)) {
+            log.info("3.2. Start + End - Not found any old ibc_connections.");
+            return;
+        }
+        log.info("3.2. Start - Need to duplicate new ibc_connections based on the old one.");
+        List<IbcConnections> ibcConnectionsNew = new ArrayList<>();
+        for (IbcConnections connectionOld : ibcConnectionsOld) {
+            IbcConnections connectionNew = new IbcConnections(networkIdUpgraderProperties.getNetworkIdNew());
+            connectionNew.fillDataFields(connectionOld);
+            ibcConnectionsNew.add(connectionNew);
+        }
+        ibcConnectionsRepository.saveAll(ibcConnectionsNew);
+        log.info("3.2. End - New ibc_connections successfully created.");
     }
 
     private void upgradeChannels() {
