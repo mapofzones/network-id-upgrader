@@ -1,6 +1,7 @@
 package com.mapofzones.networkidupgrader;
 
 import com.google.common.base.Strings;
+import com.mapofzones.networkidupgrader.data.entities.BlocksLog;
 import com.mapofzones.networkidupgrader.data.entities.Zone;
 import com.mapofzones.networkidupgrader.properties.NetworkIdUpgraderProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -13,40 +14,24 @@ import java.util.Optional;
 @Service
 public class UpgradeService {
     private final ZoneRepository zoneRepository;
+    private final BlocksLogRepository blocksLogRepository;
     private final NetworkIdUpgraderProperties networkIdUpgraderProperties;
 
-    public UpgradeService(ZoneRepository zoneRepository, NetworkIdUpgraderProperties networkIdUpgraderProperties) {
+    public UpgradeService(ZoneRepository zoneRepository, NetworkIdUpgraderProperties networkIdUpgraderProperties,
+                          BlocksLogRepository blocksLogRepository) {
         this.zoneRepository = zoneRepository;
         this.networkIdUpgraderProperties = networkIdUpgraderProperties;
+        this.blocksLogRepository = blocksLogRepository;
     }
 
     public void doScript(String[] arguments) throws Exception {
         log.info("-----Service Started.");
         validateNetworkIds();
-        mergeZones();
+        upgradeZones();
+        upgradeBlocksLog();
         //todo
         log.info("-----Service Finished.");
 
-    }
-
-    private void mergeZones() {
-        Optional<Zone> zoneNewResult = zoneRepository.findById(networkIdUpgraderProperties.getNetworkIdNew());
-        Optional<Zone> zoneOldResult = zoneRepository.findById(networkIdUpgraderProperties.getNetworkIdOld());
-        Zone zoneOld = zoneOldResult.get(); //validated before
-        if (zoneNewResult.isPresent()) {
-            log.info("1. Start - Need to merge old zone with new one.");
-            Zone zoneNew = zoneNewResult.get();
-            zoneNew.fillDefaultFields(zoneOld);
-            zoneRepository.save(zoneNew);
-            log.info("1. End - Old zone successfully merged to the new one.");
-        }
-        else {
-            log.info("1. Start - Need to create new zone based on the old one.");
-            Zone zoneNew = new Zone(networkIdUpgraderProperties.getNetworkIdNew());
-            zoneNew.fillDefaultFields(zoneOld);
-            zoneRepository.save(zoneNew);
-            log.info("1. End - New zone successfully created.");
-        }
     }
 
     private void validateNetworkIds() throws Exception {
@@ -74,6 +59,44 @@ public class UpgradeService {
                     "\" network-id from which to migrate.";
             log.error(message);
             throw new Exception(message);
+        }
+    }
+
+    private void upgradeZones() {
+        Optional<Zone> zoneNewResult = zoneRepository.findById(networkIdUpgraderProperties.getNetworkIdNew());
+        Optional<Zone> zoneOldResult = zoneRepository.findById(networkIdUpgraderProperties.getNetworkIdOld());
+        Zone zoneOld = zoneOldResult.get(); //validated before
+        if (zoneNewResult.isPresent()) {
+            log.info("1. Start - Need to merge old zone with new one.");
+            Zone zoneNew = zoneNewResult.get();
+            zoneNew.fillDefaultFields(zoneOld);
+            zoneRepository.save(zoneNew);
+            log.info("1. End - Old zone successfully merged to the new one.");
+        }
+        else {
+            log.info("1. Start - Need to create new zone based on the old one.");
+            Zone zoneNew = new Zone(networkIdUpgraderProperties.getNetworkIdNew());
+            zoneNew.fillDefaultFields(zoneOld);
+            zoneRepository.save(zoneNew);
+            log.info("1. End - New zone successfully created.");
+        }
+    }
+
+    private void upgradeBlocksLog() {
+        Optional<BlocksLog> blocksLogNewResult = blocksLogRepository.findById(networkIdUpgraderProperties.getNetworkIdNew());
+        Optional<BlocksLog> blocksLogOldResult = blocksLogRepository.findById(networkIdUpgraderProperties.getNetworkIdOld());
+        if (blocksLogNewResult.isPresent())
+            log.warn("2. Start + End --- Blocks log for new zone already exists! ---");
+        else {
+            if (blocksLogOldResult.isEmpty()) {
+                log.error("2. Start + End --- The old blocks log does not exist! ---");
+            } else {
+                log.info("2. Start - Need to create new blocks_log based on the old one.");
+                BlocksLog blocksLogNew = new BlocksLog(networkIdUpgraderProperties.getNetworkIdNew());
+                blocksLogNew.fillDataFields(blocksLogOldResult.get());
+                blocksLogRepository.save(blocksLogNew);
+                log.info("2. End - New blocks_log successfully created.");
+            }
         }
     }
 }
