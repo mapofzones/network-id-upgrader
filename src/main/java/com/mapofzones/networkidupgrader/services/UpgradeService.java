@@ -1,10 +1,7 @@
 package com.mapofzones.networkidupgrader.services;
 
 import com.google.common.base.Strings;
-import com.mapofzones.networkidupgrader.data.entities.BlocksLog;
-import com.mapofzones.networkidupgrader.data.entities.IbcClients;
-import com.mapofzones.networkidupgrader.data.entities.IbcConnections;
-import com.mapofzones.networkidupgrader.data.entities.Zone;
+import com.mapofzones.networkidupgrader.data.entities.*;
 import com.mapofzones.networkidupgrader.properties.NetworkIdUpgraderProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,16 +19,18 @@ public class UpgradeService {
     private final BlocksLogRepository blocksLogRepository;
     private final IbcClientsRepository ibcClientsRepository;
     private final IbcConnectionsRepository ibcConnectionsRepository;
+    private final IbcChannelsRepository ibcChannelsRepository;
     private final NetworkIdUpgraderProperties networkIdUpgraderProperties;
 
     public UpgradeService(ZoneRepository zoneRepository, NetworkIdUpgraderProperties networkIdUpgraderProperties,
                           BlocksLogRepository blocksLogRepository, IbcClientsRepository ibcClientsRepository,
-                          IbcConnectionsRepository ibcConnectionsRepository) {
+                          IbcConnectionsRepository ibcConnectionsRepository, IbcChannelsRepository ibcChannelsRepository) {
         this.zoneRepository = zoneRepository;
         this.networkIdUpgraderProperties = networkIdUpgraderProperties;
         this.blocksLogRepository = blocksLogRepository;
         this.ibcClientsRepository = ibcClientsRepository;
         this.ibcConnectionsRepository = ibcConnectionsRepository;
+        this.ibcChannelsRepository = ibcChannelsRepository;
     }
 
     public void doScript(String[] arguments) throws Exception {
@@ -154,6 +153,19 @@ public class UpgradeService {
     }
 
     private void upgradeChannels() {
-        //todo
+        List<IbcChannels> ibcChannelsOld = ibcChannelsRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
+        if (CollectionUtils.isEmpty(ibcChannelsOld)) {
+            log.info("3.3. Start + End - Not found any old ibc_channels.");
+            return;
+        }
+        log.info("3.3. Start - Need to duplicate new ibc_channels based on the old one.");
+        List<IbcChannels> ibcChannelsNew = new ArrayList<>();
+        for (IbcChannels channelOld : ibcChannelsOld) {
+            IbcChannels channelNew = new IbcChannels(networkIdUpgraderProperties.getNetworkIdNew());
+            channelNew.fillDataFields(channelOld);
+            ibcChannelsNew.add(channelNew);
+        }
+        ibcChannelsRepository.saveAll(ibcChannelsNew);
+        log.info("3.3. End - New ibc_channels successfully created.");
     }
 }
