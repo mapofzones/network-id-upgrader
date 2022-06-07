@@ -1,4 +1,4 @@
-package com.mapofzones.networkidupgrader;
+package com.mapofzones.networkidupgrader.services;
 
 import com.google.common.base.Strings;
 import com.mapofzones.networkidupgrader.data.entities.BlocksLog;
