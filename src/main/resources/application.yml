@@ -1,3 +1,7 @@
+network-id-upgrader:
+  network-id-old: ${NETWORK_ID_OLD:}
+  network-id-new: ${NETWORK_ID_NEW:}
+
 spring:
   main:
     web-application-type: none
