@@ -30,10 +30,15 @@ public class UpgradeService {
     }
 
     private void mergeZones() {
-        Optional<Zone> zone = zoneRepository.findById(networkIdUpgraderProperties.getNetworkIdNew());
-        if (zone.isPresent()) {
-            log.info("Need to merge old zone with new one.");
-            //todo
+        Optional<Zone> zoneNewResult = zoneRepository.findById(networkIdUpgraderProperties.getNetworkIdNew());
+        Optional<Zone> zoneOldResult = zoneRepository.findById(networkIdUpgraderProperties.getNetworkIdOld());
+        Zone zoneOld = zoneOldResult.get(); //validated before
+        if (zoneNewResult.isPresent()) {
+            log.info("1. Start - Need to merge old zone with new one.");
+            Zone zoneNew = zoneNewResult.get();
+            zoneNew.fillDefaultFields(zoneOld);
+            zoneRepository.save(zoneNew);
+            log.info("1. End - Old zone successfully merged to the new one.");
         }
         else {
             log.info("Need to create new zone based on the old one.");
