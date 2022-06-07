@@ -58,6 +58,24 @@ public class Zone {
     @NonNull
     private Boolean isActiveAddressesHidden;
 
+    public Zone() {
+    }
+
+    public Zone(@NonNull String chainId) {
+        this.chainId = chainId;
+        this.name = chainId;
+        this.isEnabled = false;
+        this.addedAt = LocalDateTime.now();
+        this.isCaughtUp = false;
+        this.updatedAt = LocalDateTime.now();
+        this.isMainnet = false;
+        this.isZoneNew = true;
+        this.zoneLabelUrl = null;
+        this.zoneLabelUrl2 = null;
+        this.website = null;
+        this.isActiveAddressesHidden = false;
+    }
+
     public void fillDefaultFields(Zone zone) {
         if (this.name.equals(this.chainId))
             this.name = zone.name;

@@ -41,8 +41,11 @@ public class UpgradeService {
             log.info("1. End - Old zone successfully merged to the new one.");
         }
         else {
-            log.info("Need to create new zone based on the old one.");
-            //todo
+            log.info("1. Start - Need to create new zone based on the old one.");
+            Zone zoneNew = new Zone(networkIdUpgraderProperties.getNetworkIdNew());
+            zoneNew.fillDefaultFields(zoneOld);
+            zoneRepository.save(zoneNew);
+            log.info("1. End - New zone successfully created.");
         }
     }
 
