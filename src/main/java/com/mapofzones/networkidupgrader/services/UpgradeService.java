@@ -6,6 +6,7 @@ import com.mapofzones.networkidupgrader.properties.NetworkIdUpgraderProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.mapofzones.networkidupgrader.data.repository.*;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
@@ -62,7 +63,8 @@ public class UpgradeService {
         }
     }
 
-    private void validateOldNetworkIdHasZone() throws Exception {
+    @Transactional
+    public void validateOldNetworkIdHasZone() throws Exception {
         Optional<Zone> zone = zoneRepository.findById(networkIdUpgraderProperties.getNetworkIdOld());
         if (zone.isEmpty()) {
             String message = "No zones were found for the specified \"" + networkIdUpgraderProperties.getNetworkIdOld() +
@@ -72,7 +74,8 @@ public class UpgradeService {
         }
     }
 
-    private void upgradeZones() {
+    @Transactional
+    public void upgradeZones() {
         Optional<Zone> zoneNewResult = zoneRepository.findById(networkIdUpgraderProperties.getNetworkIdNew());
         Optional<Zone> zoneOldResult = zoneRepository.findById(networkIdUpgraderProperties.getNetworkIdOld());
         Zone zoneOld = zoneOldResult.get(); //validated before
@@ -92,7 +95,8 @@ public class UpgradeService {
         }
     }
 
-    private void upgradeBlocksLog() {
+    @Transactional
+    public void upgradeBlocksLog() {
         Optional<BlocksLog> blocksLogNewResult = blocksLogRepository.findById(networkIdUpgraderProperties.getNetworkIdNew());
         Optional<BlocksLog> blocksLogOldResult = blocksLogRepository.findById(networkIdUpgraderProperties.getNetworkIdOld());
         if (blocksLogNewResult.isPresent())
@@ -123,7 +127,8 @@ public class UpgradeService {
         upgradeAllClientsCounterparties();
     }
 
-    private void addNewZoneClients() {
+    @Transactional
+    public void addNewZoneClients() {
         List<IbcClients> ibcClientsOld = ibcClientsRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
         if (CollectionUtils.isEmpty(ibcClientsOld)) {
             log.info("3.1. Start + End - Not found any old ibc_clients.");
@@ -140,7 +145,8 @@ public class UpgradeService {
         log.info("3.1. End - New ibc_clients successfully created.");
     }
 
-    private void upgradeAllClientsCounterparties() {
+    @Transactional
+    public void upgradeAllClientsCounterparties() {
         log.info("3.2. Start - Update counterparty Chain_id for ibc_clients.");
         List<IbcClients> clients = ibcClientsRepository.findAllByChainId(networkIdUpgraderProperties.getNetworkIdOld());
         for (IbcClients client : clients)
@@ -149,7 +155,8 @@ public class UpgradeService {
         log.info("3.2. End - Counterparty chain_id for ibc_clients successfully updated.");
     }
 
-    private void upgradeConnections() {
+    @Transactional
+    public void upgradeConnections() {
         List<IbcConnections> ibcConnectionsOld = ibcConnectionsRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
         if (CollectionUtils.isEmpty(ibcConnectionsOld)) {
             log.info("3.3. Start + End - Not found any old ibc_connections.");
@@ -166,7 +173,8 @@ public class UpgradeService {
         log.info("3.3. End - New ibc_connections successfully created.");
     }
 
-    private void upgradeChannels() {
+    @Transactional
+    public void upgradeChannels() {
         List<IbcChannels> ibcChannelsOld = ibcChannelsRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
         if (CollectionUtils.isEmpty(ibcChannelsOld)) {
             log.info("3.4. Start + End - Not found any old ibc_channels.");
