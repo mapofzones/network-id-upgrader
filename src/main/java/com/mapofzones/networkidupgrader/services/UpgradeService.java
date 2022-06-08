@@ -21,17 +21,20 @@ public class UpgradeService {
     private final IbcClientsRepository ibcClientsRepository;
     private final IbcConnectionsRepository ibcConnectionsRepository;
     private final IbcChannelsRepository ibcChannelsRepository;
+    private final TotalTxHourlyStatRepository totalTxHourlyStatRepository;
     private final NetworkIdUpgraderProperties networkIdUpgraderProperties;
 
     public UpgradeService(ZoneRepository zoneRepository, NetworkIdUpgraderProperties networkIdUpgraderProperties,
                           BlocksLogRepository blocksLogRepository, IbcClientsRepository ibcClientsRepository,
-                          IbcConnectionsRepository ibcConnectionsRepository, IbcChannelsRepository ibcChannelsRepository) {
+                          IbcConnectionsRepository ibcConnectionsRepository, IbcChannelsRepository ibcChannelsRepository,
+                          TotalTxHourlyStatRepository totalTxHourlyStatRepository) {
         this.zoneRepository = zoneRepository;
         this.networkIdUpgraderProperties = networkIdUpgraderProperties;
         this.blocksLogRepository = blocksLogRepository;
         this.ibcClientsRepository = ibcClientsRepository;
         this.ibcConnectionsRepository = ibcConnectionsRepository;
         this.ibcChannelsRepository = ibcChannelsRepository;
+        this.totalTxHourlyStatRepository = totalTxHourlyStatRepository;
     }
 
     public void doScript(String[] arguments) throws Exception {
@@ -40,6 +43,7 @@ public class UpgradeService {
         upgradeZones();
         upgradeBlocksLog();
         upgradeClientsConnectionsChannels();
+        upgradeTotalTxHourlyStatsWithActiveAddresses();
         //todo
         log.info("-----Service Finished.");
 
@@ -189,5 +193,24 @@ public class UpgradeService {
         }
         ibcChannelsRepository.saveAll(ibcChannelsNew);
         log.info("3.4. End - New ibc_channels successfully created.");
+    }
+
+    private void upgradeTotalTxHourlyStatsWithActiveAddresses() throws Exception {
+        if (isTimestampCollisionExists()) {
+            //todo
+            throw new Exception();
+        }
+
+        //active_addresses will be uptated cascadingly
+        //todo
+    }
+
+    private boolean isTimestampCollisionExists() {
+        long numberOfMergeCollisions = totalTxHourlyStatRepository.countMergeCollisions(
+                networkIdUpgraderProperties.getNetworkIdOld(),
+                networkIdUpgraderProperties.getNetworkIdNew()
+        );
+        log.info("4.1. The number of merge collisions " + numberOfMergeCollisions + ". Needs to be merged.");
+        return numberOfMergeCollisions > 0;
     }
 }
