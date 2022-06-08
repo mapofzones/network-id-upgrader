@@ -1,7 +1,7 @@
 package com.mapofzones.networkidupgrader.data.repository;
 
 import com.mapofzones.networkidupgrader.data.entities.IbcChannels;
-import com.mapofzones.networkidupgrader.data.entities.IbcChannelsKey;
+import com.mapofzones.networkidupgrader.data.entities.keys.IbcChannelsKey;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;

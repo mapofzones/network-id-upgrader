@@ -1,5 +1,6 @@
 package com.mapofzones.networkidupgrader.data.entities;
 
+import com.mapofzones.networkidupgrader.data.entities.keys.IbcClientsKey;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.lang.NonNull;

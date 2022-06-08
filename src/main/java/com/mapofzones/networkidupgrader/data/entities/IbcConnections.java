@@ -1,5 +1,6 @@
 package com.mapofzones.networkidupgrader.data.entities;
 
+import com.mapofzones.networkidupgrader.data.entities.keys.IbcConnectionsKey;
 import org.springframework.lang.NonNull;
 
 import javax.persistence.*;

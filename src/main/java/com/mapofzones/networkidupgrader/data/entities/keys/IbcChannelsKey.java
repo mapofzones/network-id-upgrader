@@ -1,4 +1,4 @@
-package com.mapofzones.networkidupgrader.data.entities;
+package com.mapofzones.networkidupgrader.data.entities.keys;
 
 import java.io.Serializable;
 
