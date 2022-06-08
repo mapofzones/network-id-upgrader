@@ -1,5 +1,7 @@
 package com.mapofzones.networkidupgrader.data.entities;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.lang.NonNull;
 
 import javax.persistence.*;
@@ -19,6 +21,8 @@ public class IbcClients {
     @NonNull
     private String clientId;
 
+    @Getter
+    @Setter
     @Column(name = "chain_id")
     @NonNull
     private String chainId;

@@ -12,4 +12,5 @@ import java.util.List;
 @Repository
 public interface IbcClientsRepository extends JpaRepository<IbcClients, IbcClientsKey> {
     List<IbcClients> findAllByZone(String zone);
+    List<IbcClients> findAllByChainId(String chainId);
 }

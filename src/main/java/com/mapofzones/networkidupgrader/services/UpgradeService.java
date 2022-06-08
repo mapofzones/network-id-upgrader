@@ -119,6 +119,11 @@ public class UpgradeService {
     }
 
     private void upgradeClients() {
+        addNewZoneClients();
+        upgradeAllClientsCounterparties();
+    }
+
+    private void addNewZoneClients() {
         List<IbcClients> ibcClientsOld = ibcClientsRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
         if (CollectionUtils.isEmpty(ibcClientsOld)) {
             log.info("3.1. Start + End - Not found any old ibc_clients.");
@@ -135,13 +140,22 @@ public class UpgradeService {
         log.info("3.1. End - New ibc_clients successfully created.");
     }
 
+    private void upgradeAllClientsCounterparties() {
+        log.info("3.2. Start - Update counterparty Chain_id for ibc_clients.");
+        List<IbcClients> clients = ibcClientsRepository.findAllByChainId(networkIdUpgraderProperties.getNetworkIdOld());
+        for (IbcClients client : clients)
+            client.setChainId(networkIdUpgraderProperties.getNetworkIdNew());
+        ibcClientsRepository.saveAll(clients);
+        log.info("3.2. End - Counterparty chain_id for ibc_clients successfully updated.");
+    }
+
     private void upgradeConnections() {
         List<IbcConnections> ibcConnectionsOld = ibcConnectionsRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
         if (CollectionUtils.isEmpty(ibcConnectionsOld)) {
-            log.info("3.2. Start + End - Not found any old ibc_connections.");
+            log.info("3.3. Start + End - Not found any old ibc_connections.");
             return;
         }
-        log.info("3.2. Start - Need to duplicate new ibc_connections based on the old one.");
+        log.info("3.3. Start - Need to duplicate new ibc_connections based on the old one.");
         List<IbcConnections> ibcConnectionsNew = new ArrayList<>();
         for (IbcConnections connectionOld : ibcConnectionsOld) {
             IbcConnections connectionNew = new IbcConnections(networkIdUpgraderProperties.getNetworkIdNew());
@@ -149,16 +163,16 @@ public class UpgradeService {
             ibcConnectionsNew.add(connectionNew);
         }
         ibcConnectionsRepository.saveAll(ibcConnectionsNew);
-        log.info("3.2. End - New ibc_connections successfully created.");
+        log.info("3.3. End - New ibc_connections successfully created.");
     }
 
     private void upgradeChannels() {
         List<IbcChannels> ibcChannelsOld = ibcChannelsRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
         if (CollectionUtils.isEmpty(ibcChannelsOld)) {
-            log.info("3.3. Start + End - Not found any old ibc_channels.");
+            log.info("3.4. Start + End - Not found any old ibc_channels.");
             return;
         }
-        log.info("3.3. Start - Need to duplicate new ibc_channels based on the old one.");
+        log.info("3.4. Start - Need to duplicate new ibc_channels based on the old one.");
         List<IbcChannels> ibcChannelsNew = new ArrayList<>();
         for (IbcChannels channelOld : ibcChannelsOld) {
             IbcChannels channelNew = new IbcChannels(networkIdUpgraderProperties.getNetworkIdNew());
@@ -166,6 +180,6 @@ public class UpgradeService {
             ibcChannelsNew.add(channelNew);
         }
         ibcChannelsRepository.saveAll(ibcChannelsNew);
-        log.info("3.3. End - New ibc_channels successfully created.");
+        log.info("3.4. End - New ibc_channels successfully created.");
     }
 }
