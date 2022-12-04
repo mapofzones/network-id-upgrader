@@ -25,6 +25,7 @@ public class UpgradeService {
     private final TokensRepository tokensRepository;
     private final DerivativeRepository derivativeRepository;
     private final IbcTransferHourlyCashflowRepository ibcTransferHourlyCashflowRepository;
+    private final ActiveAddressesRepository activeAddressesRepository;
 
     private final NetworkIdUpgraderProperties networkIdUpgraderProperties;
 
@@ -33,7 +34,8 @@ public class UpgradeService {
                           IbcConnectionsRepository ibcConnectionsRepository, IbcChannelsRepository ibcChannelsRepository,
                           TotalTxHourlyStatRepository totalTxHourlyStatRepository, ZoneParametersRepository zoneParametersRepository,
                           IBCTransferHourlyStatsRepository ibcTransferHourlyStatsRepository, TokensRepository tokensRepository,
-                          DerivativeRepository derivativeRepository, IbcTransferHourlyCashflowRepository ibcTransferHourlyCashflowRepository) {
+                          DerivativeRepository derivativeRepository, IbcTransferHourlyCashflowRepository ibcTransferHourlyCashflowRepository,
+                          ActiveAddressesRepository activeAddressesRepository) {
         this.zoneRepository = zoneRepository;
         this.networkIdUpgraderProperties = networkIdUpgraderProperties;
         this.blocksLogRepository = blocksLogRepository;
@@ -46,6 +48,7 @@ public class UpgradeService {
         this.tokensRepository = tokensRepository;
         this.derivativeRepository = derivativeRepository;
         this.ibcTransferHourlyCashflowRepository = ibcTransferHourlyCashflowRepository;
+        this.activeAddressesRepository = activeAddressesRepository;
     }
 
     public void doScript(String[] arguments) throws Exception {
@@ -61,14 +64,12 @@ public class UpgradeService {
         upgradeDerivatives();
         upgradeIbcTransferHourlyCashflow();
 //        upgradeTokenPrices();
-//        upgradeTotalTxHourlyStats();
-//        upgradeActiveAddresses();
 
 
 //        temporatyCleanup();
 
 
-//        upgradeTotalTxHourlyStatsWithActiveAddresses();
+        upgradeTotalTxHourlyStatsWithActiveAddresses();
         //todo
         log.info("-----Service Finished.");
 
@@ -316,14 +317,14 @@ public class UpgradeService {
         log.info("3.4. End - New ibc_channels successfully created.");
     }
 
-    private void upgradeTotalTxHourlyStatsWithActiveAddresses() throws Exception {
+    @Transactional
+    public void upgradeTotalTxHourlyStatsWithActiveAddresses() throws Exception {
         if (isTimestampCollisionExists()) {
             //todo old data = old data + new data;  remove old data with collision
             throw new Exception();
         }
         upgradeTotalTxHourlyStats();
-        //active_addresses will be uptated cascadingly
-        //todo
+        upgradeActiveAddresses();
     }
 
     private boolean isTimestampCollisionExists() {
@@ -338,16 +339,31 @@ public class UpgradeService {
     /**
      * non-transactional!
      */
-    private void upgradeTotalTxHourlyStats() {
-        List<TotalTxHourlyStat> stats = totalTxHourlyStatRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
-        log.info("4.2. Need to upgrade " + stats.size() + " total_tx_hourly_stat.");
-        int i = 1;
-//        for (TotalTxHourlyStat stat : stats) {
-//            stat.setZone(networkIdUpgraderProperties.getNetworkIdNew());
-//            log.info("4.2. Prepare to upgrade " + i + "th total_tx_hourly_stat.");
-//            totalTxHourlyStatRepository.save(stat);
-//            i++;
-//        }
-//        log.info("4.2. All " + stats.size() + " total_tx_hourly_stat successfully upgraded.");
+    @Transactional
+    public void upgradeTotalTxHourlyStats() {
+        List<TotalTxHourlyStat> statsOld = totalTxHourlyStatRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
+        log.info("4.2. Need to upgrade " + statsOld.size() + " total_tx_hourly_stat.");
+        List<TotalTxHourlyStat> statsNew = new ArrayList<>();
+        for (TotalTxHourlyStat stat : statsOld) {
+            TotalTxHourlyStat value = new TotalTxHourlyStat(networkIdUpgraderProperties.getNetworkIdNew());
+            value.fillDataFields(stat);
+            statsNew.add(value);
+        }
+        totalTxHourlyStatRepository.saveAll(statsNew);
+        log.info("4.2. All " + statsNew.size() + " total_tx_hourly_stat successfully upgraded.");
+    }
+
+    @Transactional
+    public void upgradeActiveAddresses() {
+        List<ActiveAddress> statsOld = activeAddressesRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
+        log.info("4.2. Need to upgrade " + statsOld.size() + " active_addresses.");
+        List<ActiveAddress> statsNew = new ArrayList<>();
+        for (ActiveAddress stat : statsOld) {
+            ActiveAddress value = new ActiveAddress(networkIdUpgraderProperties.getNetworkIdNew());
+            value.fillDataFields(stat);
+            statsNew.add(value);
+        }
+        activeAddressesRepository.saveAll(statsNew);
+        log.info("4.2. All " + statsNew.size() + " active_addresses successfully upgraded.");
     }
 }
