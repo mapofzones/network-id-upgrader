@@ -24,6 +24,7 @@ public class UpgradeService {
     private final IBCTransferHourlyStatsRepository ibcTransferHourlyStatsRepository;
     private final TokensRepository tokensRepository;
     private final DerivativeRepository derivativeRepository;
+    private final IbcTransferHourlyCashflowRepository ibcTransferHourlyCashflowRepository;
 
     private final NetworkIdUpgraderProperties networkIdUpgraderProperties;
 
@@ -32,7 +33,7 @@ public class UpgradeService {
                           IbcConnectionsRepository ibcConnectionsRepository, IbcChannelsRepository ibcChannelsRepository,
                           TotalTxHourlyStatRepository totalTxHourlyStatRepository, ZoneParametersRepository zoneParametersRepository,
                           IBCTransferHourlyStatsRepository ibcTransferHourlyStatsRepository, TokensRepository tokensRepository,
-                          DerivativeRepository derivativeRepository) {
+                          DerivativeRepository derivativeRepository, IbcTransferHourlyCashflowRepository ibcTransferHourlyCashflowRepository) {
         this.zoneRepository = zoneRepository;
         this.networkIdUpgraderProperties = networkIdUpgraderProperties;
         this.blocksLogRepository = blocksLogRepository;
@@ -44,6 +45,7 @@ public class UpgradeService {
         this.ibcTransferHourlyStatsRepository = ibcTransferHourlyStatsRepository;
         this.tokensRepository = tokensRepository;
         this.derivativeRepository = derivativeRepository;
+        this.ibcTransferHourlyCashflowRepository = ibcTransferHourlyCashflowRepository;
     }
 
     public void doScript(String[] arguments) throws Exception {
@@ -57,7 +59,7 @@ public class UpgradeService {
         upgradeIbcTransferHourlyStats();
         upgradeTokens();
         upgradeDerivatives();
-//        upgradeIbcTransferHourlyCashflow();
+        upgradeIbcTransferHourlyCashflow();
 //        upgradeTokenPrices();
 //        upgradeTotalTxHourlyStats();
 //        upgradeActiveAddresses();
@@ -127,6 +129,21 @@ public class UpgradeService {
         }
         derivativeRepository.saveAll(derivativesNew);
         log.info("?. End --- New Derivatives based on the old one created.");
+    }
+
+    @Transactional
+    public void upgradeIbcTransferHourlyCashflow() {
+        log.info("?. Start --- Need to create new IbcTransferHourlyCashflow based on the old one.");
+        // todo: findAllByZone need to change to findAllBy Zone or ZoneSrc or ZoneDest
+        List<IbcTransferHourlyCashflow> IbcTransferHourlyCashflowOld = ibcTransferHourlyCashflowRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
+        List<IbcTransferHourlyCashflow> IbcTransferHourlyCashflowNew = new ArrayList<>();
+        for (IbcTransferHourlyCashflow ibcTransferHourlyCashflow: IbcTransferHourlyCashflowOld) {
+            IbcTransferHourlyCashflow value = new IbcTransferHourlyCashflow(networkIdUpgraderProperties.getNetworkIdNew());
+            value.fillDataFields(ibcTransferHourlyCashflow);
+            IbcTransferHourlyCashflowNew.add(value);
+        }
+        ibcTransferHourlyCashflowRepository.saveAll(IbcTransferHourlyCashflowNew);
+        log.info("?. End --- New IbcTransferHourlyCashflow based on the old one created.");
     }
 
 //    @Transactional
