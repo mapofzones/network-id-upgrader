@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 @Table(name = "total_tx_hourly_stats", schema = "public")
 public class TotalTxHourlyStat {
     @Id
+    @Getter
+    @Setter
     @Column(name = "zone")
     @NonNull
     private String zone;
