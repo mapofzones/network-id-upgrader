@@ -26,6 +26,7 @@ public class UpgradeService {
     private final DerivativeRepository derivativeRepository;
     private final IbcTransferHourlyCashflowRepository ibcTransferHourlyCashflowRepository;
     private final ActiveAddressesRepository activeAddressesRepository;
+    private final TokenPricesRepository tokenPricesRepository;
 
     private final NetworkIdUpgraderProperties networkIdUpgraderProperties;
 
@@ -35,7 +36,7 @@ public class UpgradeService {
                           TotalTxHourlyStatRepository totalTxHourlyStatRepository, ZoneParametersRepository zoneParametersRepository,
                           IBCTransferHourlyStatsRepository ibcTransferHourlyStatsRepository, TokensRepository tokensRepository,
                           DerivativeRepository derivativeRepository, IbcTransferHourlyCashflowRepository ibcTransferHourlyCashflowRepository,
-                          ActiveAddressesRepository activeAddressesRepository) {
+                          ActiveAddressesRepository activeAddressesRepository, TokenPricesRepository tokenPricesRepository) {
         this.zoneRepository = zoneRepository;
         this.networkIdUpgraderProperties = networkIdUpgraderProperties;
         this.blocksLogRepository = blocksLogRepository;
@@ -49,28 +50,23 @@ public class UpgradeService {
         this.derivativeRepository = derivativeRepository;
         this.ibcTransferHourlyCashflowRepository = ibcTransferHourlyCashflowRepository;
         this.activeAddressesRepository = activeAddressesRepository;
+        this.tokenPricesRepository = tokenPricesRepository;
     }
 
+    @Transactional
     public void doScript(String[] arguments) throws Exception {
         log.info("-----Service Started.");
         validateNetworkIds();
         upgradeZones();
         upgradeBlocksLog();
         upgradeClientsConnectionsChannels();
-
         upgradeZoneParameters();
         upgradeIbcTransferHourlyStats();
         upgradeTokens();
         upgradeDerivatives();
         upgradeIbcTransferHourlyCashflow();
-//        upgradeTokenPrices();
-
-
-//        temporatyCleanup();
-
-
+        upgradeTokenPrices();
         upgradeTotalTxHourlyStatsWithActiveAddresses();
-        //todo
         log.info("-----Service Finished.");
 
     }
@@ -147,29 +143,20 @@ public class UpgradeService {
         log.info("?. End --- New IbcTransferHourlyCashflow based on the old one created.");
     }
 
-//    @Transactional
-//    public void temporatyCleanup() throws ParseException {
-//        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//        format.setTimeZone(TimeZone.getTimeZone("UTC"));
-////        Date date = format.parse("2014-01-30 07:48:25");
-//        Date date = format.parse("2022-05-25 17:00:00");
-////        LocalDateTime date = format.parse("2022-05-25 17:00:00");
-//        LocalDateTime ldt = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
-////        long l = totalTxHourlyStatRepository.deleteByZoneAndHourBefore(networkIdUpgraderProperties.getNetworkIdNew(), ldt);
-//        TotalTxHourlyStat stat = null;
-//        do {
-//            stat = totalTxHourlyStatRepository.findTopByZoneAndHourBefore(networkIdUpgraderProperties.getNetworkIdNew(), ldt);
-//            log.info(String.valueOf(stat));
-//            totalTxHourlyStatRepository.delete(stat);
-//            log.info("deleted");
-//        } while (stat != null);
-//
-//
-//
-//
-////        long l = totalTxHourlyStatRepository.removeByZoneAndHourBefore(networkIdUpgraderProperties.getNetworkIdNew(), ldt);
-////        log.info("deleted: " + l);
-//    }
+    @Transactional
+    public void upgradeTokenPrices() {
+        log.info("?. Start --- Need to create new TokenPrices based on the old one.");
+        // todo: findAllByZone need to change to findAllBy Zone or ZoneSrc or ZoneDest
+        List<TokenPrice> TokenPricesOld = tokenPricesRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
+        List<TokenPrice> TokenPricesNew = new ArrayList<>();
+        for (TokenPrice TokenPrice: TokenPricesOld) {
+            TokenPrice value = new TokenPrice(networkIdUpgraderProperties.getNetworkIdNew());
+            value.fillDataFields(TokenPrice);
+            TokenPricesNew.add(value);
+        }
+        tokenPricesRepository.saveAll(TokenPricesNew);
+        log.info("?. End --- New TokenPrices based on the old one created.");
+    }
 
     private void validateNetworkIds() throws Exception {
         validateNetworkIdsIsNotEmptyOrNull();
