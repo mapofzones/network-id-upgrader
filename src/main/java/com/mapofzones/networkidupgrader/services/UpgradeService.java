@@ -9,10 +9,6 @@ import com.mapofzones.networkidupgrader.data.repository.*;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 
 @Slf4j
@@ -25,13 +21,15 @@ public class UpgradeService {
     private final IbcChannelsRepository ibcChannelsRepository;
     private final TotalTxHourlyStatRepository totalTxHourlyStatRepository;
     private final ZoneParametersRepository zoneParametersRepository;
+    private final IBCTransferHourlyStatsRepository ibcTransferHourlyStatsRepository;
 
     private final NetworkIdUpgraderProperties networkIdUpgraderProperties;
 
     public UpgradeService(ZoneRepository zoneRepository, NetworkIdUpgraderProperties networkIdUpgraderProperties,
                           BlocksLogRepository blocksLogRepository, IbcClientsRepository ibcClientsRepository,
                           IbcConnectionsRepository ibcConnectionsRepository, IbcChannelsRepository ibcChannelsRepository,
-                          TotalTxHourlyStatRepository totalTxHourlyStatRepository, ZoneParametersRepository zoneParametersRepository) {
+                          TotalTxHourlyStatRepository totalTxHourlyStatRepository, ZoneParametersRepository zoneParametersRepository,
+                          IBCTransferHourlyStatsRepository ibcTransferHourlyStatsRepository) {
         this.zoneRepository = zoneRepository;
         this.networkIdUpgraderProperties = networkIdUpgraderProperties;
         this.blocksLogRepository = blocksLogRepository;
@@ -40,6 +38,7 @@ public class UpgradeService {
         this.ibcChannelsRepository = ibcChannelsRepository;
         this.totalTxHourlyStatRepository = totalTxHourlyStatRepository;
         this.zoneParametersRepository = zoneParametersRepository;
+        this.ibcTransferHourlyStatsRepository = ibcTransferHourlyStatsRepository;
     }
 
     public void doScript(String[] arguments) throws Exception {
@@ -50,7 +49,7 @@ public class UpgradeService {
         upgradeClientsConnectionsChannels();
 
         upgradeZoneParameters();
-//        upgradeIbcTransferHourlyStats();
+        upgradeIbcTransferHourlyStats();
 //        upgradeTokens();
 //        upgradeDerivatives();
 //        upgradeIbcTransferHourlyCashflow();
@@ -89,6 +88,21 @@ public class UpgradeService {
         }
         zoneParametersRepository.saveAll(zoneParametersRepositoriesNew);
         log.info("?. End --- New ZoneParameters based on the old one created.");
+    }
+
+    @Transactional
+    public void upgradeIbcTransferHourlyStats() {
+        log.info("?. Start --- Need to create new ibcTransferHourlyStats based on the old one.");
+        // todo: findAllByZone need to change to findAllBy Zone or ZoneSrc or ZoneDest
+        List<IBCTransferHourlyStat> ibcTransferHourlyStatsOld = ibcTransferHourlyStatsRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
+        List<IBCTransferHourlyStat> ibcTransferHourlyStatsNew = new ArrayList<>();
+        for (IBCTransferHourlyStat ibcTransferHourlyStat: ibcTransferHourlyStatsOld) {
+            IBCTransferHourlyStat value = new IBCTransferHourlyStat(networkIdUpgraderProperties.getNetworkIdNew());
+            value.fillDataFields(ibcTransferHourlyStat);
+            ibcTransferHourlyStatsNew.add(value);
+        }
+        ibcTransferHourlyStatsRepository.saveAll(ibcTransferHourlyStatsNew);
+        log.info("?. End --- New ibcTransferHourlyStats based on the old one created.");
     }
 
 //    @Transactional
