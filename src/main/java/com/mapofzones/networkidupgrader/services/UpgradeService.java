@@ -22,6 +22,7 @@ public class UpgradeService {
     private final TotalTxHourlyStatRepository totalTxHourlyStatRepository;
     private final ZoneParametersRepository zoneParametersRepository;
     private final IBCTransferHourlyStatsRepository ibcTransferHourlyStatsRepository;
+    private final TokensRepository tokensRepository;
 
     private final NetworkIdUpgraderProperties networkIdUpgraderProperties;
 
@@ -29,7 +30,7 @@ public class UpgradeService {
                           BlocksLogRepository blocksLogRepository, IbcClientsRepository ibcClientsRepository,
                           IbcConnectionsRepository ibcConnectionsRepository, IbcChannelsRepository ibcChannelsRepository,
                           TotalTxHourlyStatRepository totalTxHourlyStatRepository, ZoneParametersRepository zoneParametersRepository,
-                          IBCTransferHourlyStatsRepository ibcTransferHourlyStatsRepository) {
+                          IBCTransferHourlyStatsRepository ibcTransferHourlyStatsRepository, TokensRepository tokensRepository) {
         this.zoneRepository = zoneRepository;
         this.networkIdUpgraderProperties = networkIdUpgraderProperties;
         this.blocksLogRepository = blocksLogRepository;
@@ -39,6 +40,7 @@ public class UpgradeService {
         this.totalTxHourlyStatRepository = totalTxHourlyStatRepository;
         this.zoneParametersRepository = zoneParametersRepository;
         this.ibcTransferHourlyStatsRepository = ibcTransferHourlyStatsRepository;
+        this.tokensRepository = tokensRepository;
     }
 
     public void doScript(String[] arguments) throws Exception {
@@ -50,22 +52,13 @@ public class UpgradeService {
 
         upgradeZoneParameters();
         upgradeIbcTransferHourlyStats();
-//        upgradeTokens();
+        upgradeTokens();
 //        upgradeDerivatives();
 //        upgradeIbcTransferHourlyCashflow();
 //        upgradeTokenPrices();
 //        upgradeTotalTxHourlyStats();
 //        upgradeActiveAddresses();
-//        upgradeZoneNodes();
 
-
-
-
-//        upgradeNodesAddresses();
-//        upgradeNodesLCDAddresses();
-//        upgradeNodesRPCAddresses();
-
-//        cleanup();
 
 //        temporatyCleanup();
 
@@ -103,6 +96,20 @@ public class UpgradeService {
         }
         ibcTransferHourlyStatsRepository.saveAll(ibcTransferHourlyStatsNew);
         log.info("?. End --- New ibcTransferHourlyStats based on the old one created.");
+    }
+
+    @Transactional
+    public void upgradeTokens() {
+        log.info("?. Start --- Need to create new Tokens based on the old one.");
+        List<Token> ibcTransferHourlyStatsOld = tokensRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
+        List<Token> ibcTransferHourlyStatsNew = new ArrayList<>();
+        for (Token ibcTransferHourlyStat: ibcTransferHourlyStatsOld) {
+            Token value = new Token(networkIdUpgraderProperties.getNetworkIdNew());
+            value.fillDataFields(ibcTransferHourlyStat);
+            ibcTransferHourlyStatsNew.add(value);
+        }
+        tokensRepository.saveAll(ibcTransferHourlyStatsNew);
+        log.info("?. End --- New Tokens based on the old one created.");
     }
 
 //    @Transactional
