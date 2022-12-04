@@ -9,9 +9,11 @@ import com.mapofzones.networkidupgrader.data.repository.*;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -22,12 +24,14 @@ public class UpgradeService {
     private final IbcConnectionsRepository ibcConnectionsRepository;
     private final IbcChannelsRepository ibcChannelsRepository;
     private final TotalTxHourlyStatRepository totalTxHourlyStatRepository;
+    private final ZoneParametersRepository zoneParametersRepository;
+
     private final NetworkIdUpgraderProperties networkIdUpgraderProperties;
 
     public UpgradeService(ZoneRepository zoneRepository, NetworkIdUpgraderProperties networkIdUpgraderProperties,
                           BlocksLogRepository blocksLogRepository, IbcClientsRepository ibcClientsRepository,
                           IbcConnectionsRepository ibcConnectionsRepository, IbcChannelsRepository ibcChannelsRepository,
-                          TotalTxHourlyStatRepository totalTxHourlyStatRepository) {
+                          TotalTxHourlyStatRepository totalTxHourlyStatRepository, ZoneParametersRepository zoneParametersRepository) {
         this.zoneRepository = zoneRepository;
         this.networkIdUpgraderProperties = networkIdUpgraderProperties;
         this.blocksLogRepository = blocksLogRepository;
@@ -35,6 +39,7 @@ public class UpgradeService {
         this.ibcConnectionsRepository = ibcConnectionsRepository;
         this.ibcChannelsRepository = ibcChannelsRepository;
         this.totalTxHourlyStatRepository = totalTxHourlyStatRepository;
+        this.zoneParametersRepository = zoneParametersRepository;
     }
 
     public void doScript(String[] arguments) throws Exception {
@@ -43,11 +48,72 @@ public class UpgradeService {
         upgradeZones();
         upgradeBlocksLog();
         upgradeClientsConnectionsChannels();
-        upgradeTotalTxHourlyStatsWithActiveAddresses();
+
+        upgradeZoneParameters();
+//        upgradeIbcTransferHourlyStats();
+//        upgradeTokens();
+//        upgradeDerivatives();
+//        upgradeIbcTransferHourlyCashflow();
+//        upgradeTokenPrices();
+//        upgradeTotalTxHourlyStats();
+//        upgradeActiveAddresses();
+//        upgradeZoneNodes();
+
+
+
+
+//        upgradeNodesAddresses();
+//        upgradeNodesLCDAddresses();
+//        upgradeNodesRPCAddresses();
+
+//        cleanup();
+
+//        temporatyCleanup();
+
+
+//        upgradeTotalTxHourlyStatsWithActiveAddresses();
         //todo
         log.info("-----Service Finished.");
 
     }
+
+    @Transactional
+    public void upgradeZoneParameters() {
+        log.info("?. Start --- Need to create new ZoneParameters based on the old one.");
+        List<ZoneParameter> zoneParametersRepositoriesOld = zoneParametersRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
+        List<ZoneParameter> zoneParametersRepositoriesNew = new ArrayList<>();
+        for (ZoneParameter zoneParameter: zoneParametersRepositoriesOld) {
+            ZoneParameter value = new ZoneParameter(networkIdUpgraderProperties.getNetworkIdNew());
+            value.fillDataFields(zoneParameter);
+            zoneParametersRepositoriesNew.add(value);
+        }
+        zoneParametersRepository.saveAll(zoneParametersRepositoriesNew);
+        log.info("?. End --- New ZoneParameters based on the old one created.");
+    }
+
+//    @Transactional
+//    public void temporatyCleanup() throws ParseException {
+//        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        format.setTimeZone(TimeZone.getTimeZone("UTC"));
+////        Date date = format.parse("2014-01-30 07:48:25");
+//        Date date = format.parse("2022-05-25 17:00:00");
+////        LocalDateTime date = format.parse("2022-05-25 17:00:00");
+//        LocalDateTime ldt = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
+////        long l = totalTxHourlyStatRepository.deleteByZoneAndHourBefore(networkIdUpgraderProperties.getNetworkIdNew(), ldt);
+//        TotalTxHourlyStat stat = null;
+//        do {
+//            stat = totalTxHourlyStatRepository.findTopByZoneAndHourBefore(networkIdUpgraderProperties.getNetworkIdNew(), ldt);
+//            log.info(String.valueOf(stat));
+//            totalTxHourlyStatRepository.delete(stat);
+//            log.info("deleted");
+//        } while (stat != null);
+//
+//
+//
+//
+////        long l = totalTxHourlyStatRepository.removeByZoneAndHourBefore(networkIdUpgraderProperties.getNetworkIdNew(), ldt);
+////        log.info("deleted: " + l);
+//    }
 
     private void validateNetworkIds() throws Exception {
         validateNetworkIdsIsNotEmptyOrNull();
@@ -197,10 +263,10 @@ public class UpgradeService {
 
     private void upgradeTotalTxHourlyStatsWithActiveAddresses() throws Exception {
         if (isTimestampCollisionExists()) {
-            //todo
+            //todo old data = old data + new data;  remove old data with collision
             throw new Exception();
         }
-
+        upgradeTotalTxHourlyStats();
         //active_addresses will be uptated cascadingly
         //todo
     }
@@ -212,5 +278,21 @@ public class UpgradeService {
         );
         log.info("4.1. The number of merge collisions " + numberOfMergeCollisions + ". Needs to be merged.");
         return numberOfMergeCollisions > 0;
+    }
+
+    /**
+     * non-transactional!
+     */
+    private void upgradeTotalTxHourlyStats() {
+        List<TotalTxHourlyStat> stats = totalTxHourlyStatRepository.findAllByZone(networkIdUpgraderProperties.getNetworkIdOld());
+        log.info("4.2. Need to upgrade " + stats.size() + " total_tx_hourly_stat.");
+        int i = 1;
+//        for (TotalTxHourlyStat stat : stats) {
+//            stat.setZone(networkIdUpgraderProperties.getNetworkIdNew());
+//            log.info("4.2. Prepare to upgrade " + i + "th total_tx_hourly_stat.");
+//            totalTxHourlyStatRepository.save(stat);
+//            i++;
+//        }
+//        log.info("4.2. All " + stats.size() + " total_tx_hourly_stat successfully upgraded.");
     }
 }
